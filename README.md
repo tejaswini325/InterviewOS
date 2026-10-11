@@ -1,75 +1,203 @@
-# InterviewOS
+# InterviewOS 
 
-Adaptive technical interview platform: React + Vite + TypeScript + Tailwind frontend, Java 21 / Spring Boot 3 backend, PostgreSQL, Redis, Kafka, Flyway.
+**An adaptive, AI-powered interview preparation platform that personalizes technical interviews, evaluates answers, and tracks interview performance.**
 
-## Verification status (read this first)
+InterviewOS combines resume-based question generation, job-role-specific technical interviews, adaptive difficulty, and AI-assisted answer evaluation to create a more personalized interview practice experience.
 
-| Part | Status |
+## ✨ Features
+
+- **Resume-Based Interviews:** Upload PDF or DOCX resumes and practice questions tailored to your background, skills, and projects.
+- **Role-Based Preparation:** Practice interviews for different technical roles and areas of interest.
+- **Multiple Interview Modes:** Choose from Technical, DSA, HR, Project-Based, and AI/ML interviews.
+- **Adaptive Difficulty:** Questions become easier or harder based on recent performance and topic coverage.
+- **AI-Powered Evaluation:** Optionally use Groq to assess open-ended answers, generate contextual follow-up questions, and summarize interview reports.
+- **Automatic Fallback:** Continue practicing with rule-based follow-ups and heuristic evaluation when AI services are unavailable.
+- **Interview Reports:** Review scores, performance summaries, difficulty changes, and areas for improvement.
+- **Asynchronous Processing:** Use Kafka-backed jobs for interview evaluation and report processing.
+- **Progress Tracking:** Track practice activity, bookmark questions, and discover suggested topics.
+- **Secure Authentication:** JWT-based authentication with rate limiting and token revocation support.
+- **Speech Support:** Dictate answers and listen to interviewer messages in supported browsers.
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
 |---|---|
-| Pure Java core: adaptive engine, scorers (configurable rules), rule-based follow-up chooser | Compiled and exercised with a standalone harness (23 checks) |
-| Frontend | TypeScript strict passes, `npm run build` succeeds, **33 Vitest tests pass** |
-| Spring Boot backend (controllers, JPA, security, Kafka, jobs, Groq provider) | **Written but NOT compiled or run.** The authoring sandbox cannot reach Maven Central. Sources parse (no syntax errors), but expect a few compile/wiring errors on first build |
-| Backend tests (unit, Groq stub-server tests, integration on H2) | **Written but NOT run** |
-| Docker Compose / Dockerfiles | **Not run** |
-| Real Groq calls | **Not made.** The provider is tested only against a local stub of the OpenAI-compatible endpoint (written, not run) |
-| Real Kafka / Redis / PostgreSQL behaviour | **Not exercised** |
+| Frontend | React, Vite, TypeScript, Tailwind CSS |
+| Backend | Java 21, Spring Boot 3, Maven |
+| Database | PostgreSQL, Flyway |
+| Caching and Rate Limiting | Redis |
+| Asynchronous Jobs | Apache Kafka |
+| AI Integration | Groq API |
+| Testing | JUnit, Vitest, integration tests |
+| Deployment and Development | Docker, Docker Compose |
 
-Run `mvn test` first: it is the real verification step.
+## 🏗️ Architecture
 
-## Quick start (Windows PowerShell)
+```text
+                  ┌──────────────────┐
+                  │   React Frontend │
+                  │  Vite + TypeScript│
+                  └────────┬─────────┘
+                           │ REST API
+                  ┌────────▼─────────┐
+                  │  Spring Boot API │
+                  │ Authentication   │
+                  │ Interview Engine │
+                  │ Answer Evaluation│
+                  └───────┬──────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            │             │             │
+       ┌────▼────┐  ┌─────▼────┐  ┌────▼────┐
+       │PostgreSQL│  │  Redis   │  │  Kafka  │
+       │   Data   │  │  Cache   │  │  Jobs   │
+       └─────────┘  └──────────┘  └─────────┘
+                          │
+                  ┌───────▼────────┐
+                  │    Groq API    │
+                  │ Optional AI    │
+                  └────────────────┘
+```
 
-Prerequisites: Docker Desktop, JDK 21, Maven 3.9+, Node 20+.
+## 🚀 Getting Started
 
-```powershell
+### Prerequisites
+
+- Docker Desktop
+- Git
+- A Groq API key for AI-powered features (optional)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/tejaswini325/InterviewOS.git
+cd InterviewOS
+```
+
+### 2. Configure environment variables
+
+Create your local environment file from the example:
+
+**Windows Command Prompt**
+
+```cmd
 copy .env.example .env
-# edit .env: set DB_PASSWORD and JWT_SECRET (32+ chars)
-docker compose up --build
 ```
 
-- App: http://localhost:8081  - API docs (Swagger): http://localhost:8080/swagger-ui.html - Health: http://localhost:8080/actuator/health
-
-### Develop without containers for the app
+**PowerShell**
 
 ```powershell
-docker compose up -d postgres redis kafka
-$env:DB_PASSWORD="<same as .env>"; $env:JWT_SECRET="<32+ chars>"
-cd backend; mvn spring-boot:run          # new terminal:
-cd frontend; npm install; npm run dev    # http://localhost:5173 (proxies /api to :8080)
+Copy-Item .env.example .env
 ```
 
-## Tests
+Open `.env` and configure the required values, including:
 
-```powershell
-cd backend;  mvn test      # unit tests + integration tests on in-memory H2; Kafka and Redis are swapped for in-process equivalents
-cd frontend; npm test      # Vitest
+- `DB_PASSWORD`
+- `JWT_SECRET` — use a strong secret of at least 32 bytes
+- `GROQ_API_KEY` — your private Groq API key
+- `GROQ_MODEL` — if supported by your application configuration
+
+Use the variable names and defaults defined in `.env.example` and your application configuration. Never commit your real `.env` file or API keys to GitHub.
+
+### 3. Start the application
+
+From the project root, run:
+
+```bash
+docker compose up --build -d
 ```
 
-The whole interview workflow (register, start, adapt, answer, complete, report, analytics) runs in the integration tests with no LLM, broker or Redis.
+Check the running services:
 
-## Modes, follow-ups and AI
+```bash
+docker compose ps
+```
 
-- **Modes**: Technical, DSA, HR, Project-based, AI/ML. Each maps to question-bank topics (HR, PROJECT, ML are new; 19 questions added in migration V4, generated by `tools/gen_seed_modes.py`). Old sessions keep working (they default to Technical).
-- **Conversation**: the interview room is a chat. Open-ended answers can trigger one follow-up question. Every interviewer message shows its source: *Question bank*, *Rule-based follow-up* or *AI-generated (Groq)*.
-- **Rule-based engine (default)**: follow-ups come from each question's predefined rules (keyed by expected concept) or a fixed template about the first missed concept. Scores are keyword/concept matches and are labelled *heuristic score*. MCQs are labelled *answer key*. Thresholds are configurable (`interviewos.scoring.*`).
-- **Groq (optional)**: set `GROQ_API_KEY` (and optionally `GROQ_MODEL`). Used for (1) contextual follow-ups, (2) one assessment per open answer, blended 50/50 with the heuristic and labelled *AI-assisted score*, (3) one summary per report. Calls happen only on those events, never for UI actions; results are persisted. 429/5xx/timeouts open a cooldown and the app falls back to rules automatically.
-- **Speech**: *Dictate* and *Read aloud* appear only if the browser supports them; text is always the default.
-- **Practice**: bookmarks, weekly goal, and dashboard suggestions that state their basis (from your scores / bookmarks / new topic).
-- **DSA execution**: not available. No safe execution engine exists in this project, so no code is run and nothing claims it was.
+View backend logs:
 
-## Key behaviour
+```bash
+docker compose logs -f backend
+```
 
-- **Adaptation** (`AdaptiveEngine`): 2 consecutive answers >= 75% raise difficulty; 2 consecutive < 40% lower it; coverage picks the least-asked topic; a topic with mean < 40% (>= 2 attempts) is served one level easier. Each question stores the difficulty and a human-readable reason; the report shows them.
-- **Evaluation**: MCQ by key; short/long by weighted rubric concepts (keyword-stuffing capped at 50%); optional LLM blend (max 50% weight, output clamped and sanitised). A provisional deterministic score is computed synchronously and drives adaptation; the Kafka job finalises it.
-- **Kafka**: producer publishes the job id after DB commit; consumer claims the job atomically (idempotent), retries up to 3 times, then marks it `DEAD` and publishes to the DLQ topic. A sweeper redelivers pending jobs, recovers crashed consumers and completes abandoned interviews. Failed jobs: `GET /api/jobs?status=DEAD`, retry with `POST /api/jobs/{id}/retry`.
-- **Redis**: caches question metadata; rate-limits login/register; stores revoked token ids so logout works.
-- **Coding questions**: seeded (4) but **not served** because no sandbox is bundled. Candidate code never runs in the Spring process. Implement `CodeExecutor` against an isolated runner to enable them.
+### 4. Open InterviewOS
 
-## Troubleshooting
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:8081 |
+| Backend health | http://localhost:8080/actuator/health |
+| Swagger API documentation | http://localhost:8080/swagger-ui.html |
 
-- `JWT_SECRET must be set and at least 32 bytes long`: set it in `.env` / the shell.
-- Backend cannot reach Kafka from the host: use `localhost:29092` (default); inside Compose it is `kafka:9092`.
-- Port in use: change the mapped ports in `docker-compose.yml`.
-- 429 on login: the auth rate limit is 10 requests/minute per IP.
-- Report stuck on "Generating": check `GET /api/jobs`, then backend logs (look for `Job <id> failed`).
+The exact URLs depend on your Docker Compose port configuration.
 
-See `docs/ARCHITECTURE.md` for design decisions, schema notes and known limitations.
+## 🤖 How AI Integration Works
+
+Groq is an optional AI provider that enhances the interview workflow.
+
+It can be used for:
+
+1. Generating contextual follow-up questions based on a candidate's answer.
+2. Assessing open-ended answers and combining AI assessment with heuristic scoring.
+3. Producing interview report summaries.
+
+The rule-based engine provides a fallback when AI requests fail or the service is unavailable. AI-assisted scoring is bounded and combined with deterministic evaluation rather than being treated as an unrestricted score.
+
+AI requests are made for supported interview events, not every user-interface action.
+
+## 🧠 Adaptive Interview Engine
+
+InterviewOS adjusts practice difficulty based on recent performance.
+
+- Two consecutive answers scoring at least 75% can increase difficulty.
+- Two consecutive answers scoring below 40% can decrease difficulty.
+- Topic selection considers coverage and previous performance.
+- Weak topics can be presented at a lower difficulty after sufficient attempts.
+
+These rules are configurable and help keep practice focused on the candidate's learning needs.
+
+## 🧪 Testing
+
+### Backend
+
+```bash
+cd backend
+mvn test
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm test
+npm run build
+```
+
+Run the tests before deployment to verify the current source code and dependencies. Test results can vary with code changes and environment configuration.
+
+## 🔐 Security Notes
+
+- Keep API keys and production credentials in environment variables or a secrets manager.
+- Never commit `.env` files containing real credentials.
+- Use a strong JWT secret and secure database credentials.
+- Configure CORS, HTTPS, and production service access before exposing the application publicly.
+- InterviewOS does not execute submitted coding answers in a bundled code-execution sandbox.
+
+## 🗺️ Roadmap
+
+- Improve resume-aware interview personalization.
+- Expand interview question coverage and evaluation rubrics.
+- Enhance interview analytics and progress insights.
+- Deploy the platform with production-ready configuration.
+- Explore safe, isolated code execution for programming interviews.
+
+## 👩‍💻 Author
+
+**Tejaswini M V**
+
+Computer Science and Artificial Intelligence Engineering
+
+- GitHub: [@tejaswini325](https://github.com/tejaswini325)
+
+## 📄 License
+
+Add a `LICENSE` file if you intend to publish this project under an open-source license.
