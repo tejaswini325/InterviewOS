@@ -1,0 +1,4 @@
+logging:
+  structured.format.console: logstash
+  pattern.console:
+server.forward-headers-strategy: native

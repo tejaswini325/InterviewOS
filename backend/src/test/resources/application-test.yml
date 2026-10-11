@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:interviewos;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  cache.type: simple
+  autoconfigure.exclude:
+    - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+    - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+    - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  flyway.locations: classpath:db/migration
+  jpa.hibernate.ddl-auto: none   # H2 maps TEXT to CLOB; schema is still created by the real Flyway migrations
+
+interviewos:
+  jwt.secret: test-secret-test-secret-test-secret-123456
+  kafka.enabled: false     # jobs are dispatched inline: the full workflow runs without a broker
+  redis.enabled: false     # in-memory key/value store replaces Redis
+  ai.groq.api-key: ''      # no key: deterministic engine only
+  rate-limit.auth-requests-per-minute: 1000

@@ -1,0 +1,77 @@
+spring:
+  application.name: interviewos
+  servlet.multipart:
+    max-file-size: 5MB
+    max-request-size: 6MB
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/interviewos}
+    username: ${DB_USER:interviewos}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+    properties.hibernate.jdbc.time_zone: UTC
+  flyway.enabled: true
+  data.redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
+    redis.time-to-live: 10m
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: interviewos-evaluation
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties.enable.idempotence: true
+  jackson.default-property-inclusion: non_null
+
+server:
+  port: 8080
+  error.include-stacktrace: never
+  error.include-message: never
+
+interviewos:
+  jwt:
+    secret: ${JWT_SECRET:}          # required, >= 32 chars; no default on purpose
+    expiry-minutes: 60
+  cors.allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  kafka:
+    enabled: true
+    topic: interviewos.evaluation.jobs
+    dlq-topic: interviewos.evaluation.jobs.dlq
+  redis.enabled: true
+  ai:
+    groq:
+      api-key: ${GROQ_API_KEY:}      # empty = AI features off; the core application never needs it
+      model: ${GROQ_MODEL:openai/gpt-oss-120b}   # verify against https://console.groq.com/docs/models
+      base-url: https://api.groq.com/openai/v1
+      reasoning-effort: low
+      timeout-seconds: 15
+      cooldown-seconds: 60
+  scoring:
+    correct-threshold: 0.75
+    partial-threshold: 0.40
+    stuffing-cap: 0.5
+    min-words-per-concept: 3
+  evaluation:
+    max-attempts: 3
+    stale-processing-seconds: 120
+  rate-limit:
+    auth-requests-per-minute: 10
+
+management:
+  endpoints.web.exposure.include: health,info
+  endpoint.health.probes.enabled: true
+  endpoint.health.show-details: never
+
+springdoc:
+  swagger-ui.path: /swagger-ui.html
+
+logging.pattern.console: "%d{HH:mm:ss.SSS} %-5level [%X{requestId:-}] %logger{36} - %msg%n"
