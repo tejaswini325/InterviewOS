@@ -10,8 +10,9 @@ export const tokenStore = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 }
 
-export const api = axios.create({ baseURL: '/api', timeout: 20000 })
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+export const api = axios.create({ baseURL: API_BASE_URL, timeout: 20000 })
 api.interceptors.request.use((cfg) => {
   const t = tokenStore.get()
   if (t) cfg.headers.Authorization = `Bearer ${t}`
